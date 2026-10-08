@@ -1,0 +1,277 @@
+@import "tailwindcss";
+
+/*
+ * Visual language: a thermal-imaging lab instrument.
+ * Dark "instrument" surfaces with a heat ramp (orange → cold cyan) and a violet entropy accent
+ * for the projector and phones; a warm paper "lab notebook" theme for Self-Study.
+ * Fonts are self-hosted via Fontsource (no network requests in a classroom).
+ */
+
+@theme {
+  --font-sans: "Instrument Sans Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Fraunces Variable", ui-serif, Georgia, "Times New Roman", serif;
+  --font-mono: "Martian Mono Variable", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  --animate-rise: rise 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  --animate-breathe: breathe 3.2s ease-in-out infinite;
+  --animate-drift: drift 7s ease-in-out infinite;
+  --animate-ring: ring 1.8s ease-out infinite;
+}
+
+:root,
+.theme-dark {
+  color-scheme: dark;
+  --bg: #060a12;
+  --surface: #0c1320;
+  --surface-2: #121b2e;
+  --surface-3: #1a2640;
+  --line: rgb(148 170 224 / 0.15);
+  --line-strong: rgb(148 170 224 / 0.34);
+  --ink: #e8eefc;
+  --ink-dim: #9eacca;
+  --ink-faint: #64749b;
+  --hot: #ff6a33;
+  --cold: #3dc7f4;
+  --entropy: #b79cff;
+  --good: #3fdc98;
+  --bad: #ff5b79;
+  --accent: #ffcb52;
+}
+
+.theme-paper {
+  color-scheme: light;
+  --bg: #f2ecdd;
+  --surface: #fbf7ec;
+  --surface-2: #eee6d3;
+  --surface-3: #e2d8c0;
+  --line: rgb(36 46 78 / 0.14);
+  --line-strong: rgb(36 46 78 / 0.32);
+  --ink: #1a2135;
+  --ink-dim: #46516f;
+  --ink-faint: #79839f;
+  --hot: #d0431a;
+  --cold: #0b76a6;
+  --entropy: #6842dc;
+  --good: #0a8c60;
+  --bad: #c1284a;
+  --accent: #9c6200;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-ink: var(--ink);
+  --color-ink-dim: var(--ink-dim);
+  --color-ink-faint: var(--ink-faint);
+  --color-hot: var(--hot);
+  --color-cold: var(--cold);
+  --color-entropy: var(--entropy);
+  --color-good: var(--good);
+  --color-bad: var(--bad);
+  --color-accent: var(--accent);
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.78;
+  }
+  50% {
+    transform: scale(1.07);
+    opacity: 1;
+  }
+}
+
+@keyframes drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -16px, 0);
+  }
+}
+
+@keyframes ring {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--good) 60%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 16px transparent;
+  }
+}
+
+/* Heat flowing across the contact face, left → right (flipped for the reverse process). */
+@keyframes flow {
+  0% {
+    transform: translateX(-70px);
+    opacity: 0;
+  }
+  20%,
+  75% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(70px);
+    opacity: 0;
+  }
+}
+
+@layer components {
+  /* Graph-paper grid + two soft heat lamps: hot on the upper left, cold on the lower right. */
+  .bg-instrument {
+    background-color: var(--bg);
+    background-image:
+      radial-gradient(60% 48% at 10% 8%, rgb(255 106 51 / 0.2), transparent 72%),
+      radial-gradient(56% 50% at 94% 96%, rgb(61 199 244 / 0.17), transparent 72%),
+      linear-gradient(var(--line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size: auto, auto, 48px 48px, 48px 48px;
+  }
+
+  /* Ruled notebook paper for Self-Study. */
+  .bg-notebook {
+    background-color: var(--bg);
+    background-image:
+      radial-gradient(70% 40% at 50% -10%, rgb(255 255 255 / 0.55), transparent 70%),
+      linear-gradient(var(--line) 1px, transparent 1px);
+    background-size: auto, 100% 34px;
+  }
+
+  .grain {
+    position: relative;
+  }
+  .grain::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.07;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  }
+
+  .mono-label {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    font-weight: 500;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+  }
+
+  .panel {
+    background: color-mix(in oklab, var(--surface) 88%, transparent);
+    border: 1px solid var(--line);
+    border-radius: 1.25rem;
+    backdrop-filter: blur(6px);
+  }
+
+  /* Temperature → colour: --heat is 0 (cold) … 1 (hot). */
+  /* Mixed in OKLCH the blend passes through magenta/violet like a thermal camera, not through grey. */
+  .heat-bg {
+    background: color-mix(in oklch, var(--hot) calc(var(--heat, 0.5) * 100%), var(--cold));
+  }
+  .heat-fill {
+    fill: color-mix(in oklch, var(--hot) calc(var(--heat, 0.5) * 100%), var(--cold));
+  }
+
+  /* Progressive reveal that keeps the layout still. */
+  .reveal {
+    transition:
+      opacity 0.7s ease,
+      transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1),
+      filter 0.7s ease;
+  }
+  .reveal[data-shown="false"] {
+    opacity: 0;
+    transform: translateY(22px);
+    filter: blur(6px);
+    pointer-events: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Editor: three deliberate work surfaces — outline, writing desk, live classroom preview. */
+  .editor-header { border-bottom: 1px solid var(--line); padding-bottom: 1.35rem; }
+  .editor-nav { padding: .55rem; border: 1px solid var(--line); border-radius: 1.25rem; background: color-mix(in oklab, var(--surface) 74%, transparent); }
+  .editor-form { border-radius: 1.5rem; }
+  .editor-preview { border-radius: 1.5rem; }
+  .editor-preview > .panel { border-color: var(--line-strong); box-shadow: 0 18px 55px rgb(0 0 0 / .16); }
+  .editor-workspace textarea { min-height: 7rem; }
+
+  /* Practice: an observation deck, not a generic collection of browser frames. */
+  .practice-room { background: radial-gradient(65% 80% at 50% 0%, rgb(183 156 255 / .13), transparent 66%), #03060c; }
+  .practice-header { border: 1px solid var(--line-strong); border-radius: 1rem; background: color-mix(in oklab, var(--surface) 88%, transparent); box-shadow: 0 12px 38px rgb(0 0 0 / .2); }
+  .practice-pane { box-shadow: 0 10px 32px rgb(0 0 0 / .18); }
+  .practice-pane > :first-child { border-bottom: 1px solid var(--line); background: color-mix(in oklab, var(--surface-2) 72%, transparent); }
+  .practice-pane--projector { border-color: #d8e1ec; background: #fff; box-shadow: 0 0 0 2px rgb(255 255 255 / .58), 0 20px 52px rgb(162 190 221 / .2); }
+  .practice-pane--projector > :first-child { border-color: #d8e1ec; background: #f8fbff; color: #102039; }
+  .practice-pane--projector > :first-child .mono-label { color: #53657a; }
+  .practice-pane--projector > :first-child button { color: #2c435d; }
+  .practice-pane--projector > :last-child { margin: .45rem; border: 1px solid #d8e1ec; }
+
+  @media (max-width: 1200px) {
+    .practice-room { height: auto !important; min-height: 100dvh; }
+    .practice-screens { grid-template-columns: minmax(0, 1fr) !important; min-height: auto; }
+    .practice-screens > .practice-pane { min-height: 36rem !important; }
+    .practice-screens > div { min-height: auto !important; }
+    .practice-room { overflow-x: hidden; }
+  }
+}
+
+/*
+ * KaTeX ships an UNLAYERED stylesheet, which beats every Tailwind utility (those live in cascade
+ * layers). So display-math spacing and alignment are tuned here, outside any layer.
+ */
+.math-block .katex-display {
+  margin: 0.2em 0;
+}
+.math-block.math-left .katex-display,
+.math-block.math-left .katex-display > .katex {
+  text-align: left;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
