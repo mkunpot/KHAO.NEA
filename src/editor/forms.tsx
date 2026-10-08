@@ -8,7 +8,7 @@
 import { optionStyle, Shape } from '../components/optionStyle'
 import type { Block, LessonDefinition, Question } from '../lesson/types'
 import type { LessonProblem } from '../lesson/validate'
-import { Card, TextField } from './fields'
+import { Card, Segmented, TextField } from './fields'
 import type { LessonEdit } from './useLessonDraft'
 
 export interface FormProps {
@@ -26,6 +26,12 @@ function setOptionalText(owner: object, key: string, value: string) {
   const record = owner as Record<string, unknown>
   if (value === '') delete record[key]
   else record[key] = value
+}
+
+function setOptionalTerms(owner: object, value: string) {
+  const terms = value.split(',').map((term) => term.trim()).filter(Boolean)
+  if (terms.length === 0) delete (owner as Record<string, unknown>).highlights
+  else (owner as Record<string, unknown>).highlights = terms
 }
 
 function baseBlock(base: LessonDefinition, id: string): Block | undefined {
@@ -184,6 +190,34 @@ export function StepForm({ lesson, base, update, problems, stepIndex, onJumpToSu
               </Card>
             )
           }
+          case 'text': {
+            const label = labelFor('text', 'Preset text', blockIndex)
+            const originalText = original?.type === 'text' ? original : undefined
+            return (
+              <Card key={block.id} title={label} badge={when}>
+                <TextField
+                  label="Text"
+                  rows={3}
+                  hint="Use $…$ for inline math."
+                  value={block.text}
+                  original={originalText?.text}
+                  problems={problemsAt(problems, `${path}.text`)}
+                  onChange={(value) => editBlock(update, stepIndex, blockIndex, 'text', (b) => void (b.text = value))}
+                />
+                <div className="space-y-2"><p className="mono-label">Text role</p><Segmented label="Text role" value={block.role} onChange={(value) => editBlock(update, stepIndex, blockIndex, 'text', (b) => void (b.role = value))} options={[{ value: 'kicker', label: 'Kicker' }, { value: 'title', label: 'Title' }, { value: 'subtitle', label: 'Subtitle' }, { value: 'section', label: 'Section' }, { value: 'body', label: 'Body' }, { value: 'callout', label: 'Callout' }, { value: 'caption', label: 'Caption' }]} /></div>
+                <div className="space-y-2"><p className="mono-label">Alignment</p><Segmented label="Text alignment" value={block.align ?? 'left'} onChange={(value) => editBlock(update, stepIndex, blockIndex, 'text', (b) => void (b.align = value))} options={[{ value: 'left', label: 'Left' }, { value: 'center', label: 'Center' }, { value: 'right', label: 'Right' }]} /></div>
+                <div className="space-y-2"><p className="mono-label">Entrance</p><Segmented label="Text animation" value={block.animation ?? 'none'} onChange={(value) => editBlock(update, stepIndex, blockIndex, 'text', (b) => void (b.animation = value))} options={[{ value: 'none', label: 'None' }, { value: 'fade', label: 'Fade' }, { value: 'rise', label: 'Rise' }]} /></div>
+                <TextField
+                  label="Highlight terms"
+                  hint="Separate exact words with commas. For an inline equation, include the dollar signs, e.g. $\\Delta S \\ge 0$."
+                  value={(block.highlights ?? []).join(', ')}
+                  original={(originalText?.highlights ?? []).join(', ')}
+                  problems={problemsAt(problems, `${path}.highlights`)}
+                  onChange={(value) => editBlock(update, stepIndex, blockIndex, 'text', (b) => setOptionalTerms(b, value))}
+                />
+              </Card>
+            )
+          }
           case 'equation': {
             const label = labelFor('equation', 'Equation', blockIndex)
             return (
@@ -246,6 +280,42 @@ export function StepForm({ lesson, base, update, problems, stepIndex, onJumpToSu
                   onChange={(value) => editBlock(update, stepIndex, blockIndex, 'diagram', (b) => setOptionalText(b, 'caption', value))}
                 />
                 <p className="text-xs text-ink-faint">The drawing itself is not editable here.</p>
+              </Card>
+            )
+          case 'image':
+            return (
+              <Card key={block.id} title="Image" badge={when}>
+                <TextField
+                  label="Image path or URL"
+                  hint="Use a PNG, JPG, WebP or SVG from public/, such as /lesson-assets/fridge.png, or an HTTPS URL."
+                  value={block.src}
+                  original={original?.type === 'image' ? original.src : undefined}
+                  problems={problemsAt(problems, `${path}.src`)}
+                  onChange={(value) => editBlock(update, stepIndex, blockIndex, 'image', (b) => void (b.src = value))}
+                />
+                <TextField
+                  label="Image description"
+                  hint="Describe the image for screen readers; leave blank only for decorative artwork."
+                  value={block.alt}
+                  original={original?.type === 'image' ? original.alt : undefined}
+                  problems={problemsAt(problems, `${path}.alt`)}
+                  onChange={(value) => editBlock(update, stepIndex, blockIndex, 'image', (b) => void (b.alt = value))}
+                />
+                <TextField
+                  label="Fit"
+                  hint="contain = show all of it; cover = fill the frame and crop edges."
+                  value={block.fit ?? 'contain'}
+                  original={original?.type === 'image' ? (original.fit ?? 'contain') : 'contain'}
+                  problems={problemsAt(problems, `${path}.fit`)}
+                  onChange={(value) => editBlock(update, stepIndex, blockIndex, 'image', (b) => void (b.fit = value as 'contain' | 'cover'))}
+                />
+                <TextField
+                  label="Caption"
+                  value={block.caption ?? ''}
+                  original={original?.type === 'image' ? (original.caption ?? '') : undefined}
+                  problems={problemsAt(problems, `${path}.caption`)}
+                  onChange={(value) => editBlock(update, stepIndex, blockIndex, 'image', (b) => setOptionalText(b, 'caption', value))}
+                />
               </Card>
             )
           case 'simulation':

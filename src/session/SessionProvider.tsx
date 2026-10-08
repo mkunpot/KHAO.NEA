@@ -15,6 +15,7 @@
  */
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { lessonById } from '../lesson'
 import type { LessonDefinition } from '../lesson/types'
 import type { ClassroomEvent } from '../realtime/events'
 import type { RealtimeAdapter, SubmitResult } from '../realtime/RealtimeAdapter'
@@ -152,7 +153,7 @@ export function SessionProvider({ code, role, lesson, adapter, children }: Sessi
           return
         }
         applyRecord(record, true)
-        setSessionLesson(record.lesson ?? null)
+        setSessionLesson(record.lesson ?? lessonById(record.lessonId) ?? null)
         setPhase('ready')
         if (role === 'student' && participant) {
           joinPromise.current = adapter.joinSession({ sessionId: record.id, participant })

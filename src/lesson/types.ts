@@ -75,6 +75,21 @@ export interface ConceptBlock extends BlockBase {
   tone?: 'default' | 'key' | 'warning' | 'stamp'
 }
 
+/** Modern, preset-driven copy for titles, subheads and supporting text. */
+export type TextRole = 'kicker' | 'title' | 'subtitle' | 'section' | 'body' | 'callout' | 'caption'
+export type TextAnimation = 'none' | 'fade' | 'rise'
+
+export interface TextBlock extends BlockBase {
+  type: 'text'
+  text: string
+  /** The role fixes type scale, colour, weight and line-height—authors never tune raw CSS values. */
+  role: TextRole
+  align?: 'left' | 'center' | 'right'
+  /** Exact words or `$…$` inline equations to draw attention to. */
+  highlights?: string[]
+  animation?: TextAnimation
+}
+
 export interface EquationBlock extends BlockBase {
   type: 'equation'
   latex: string
@@ -101,10 +116,21 @@ export interface QuestionBlock extends BlockBase {
   type: 'question'
   questionId: string
   /**
+   * `deferred` collects an answer now but deliberately withholds the result until a
+   * later `question-review` block. Useful for a pre-test or a prediction.
+   */
+  answerTiming?: 'immediate' | 'deferred'
+  /**
    * In the teacher's guided flow: the reveal stage that must be on screen before voting opens
    * (default 0 = vote first, reveal afterwards).
    */
   afterReveal?: number
+}
+
+/** Revisit a previously asked deferred question, normally at the end of a lesson. */
+export interface QuestionReviewBlock extends BlockBase {
+  type: 'question-review'
+  questionId: string
 }
 
 /** Long-form prose. Self-Study only — too wordy for a projector slide. */
@@ -120,6 +146,17 @@ export interface DiagramBlock extends BlockBase {
   caption?: string
 }
 
+/** A raster or SVG visual, served from `public/` (for example `/lesson-assets/fridge.png`) or HTTPS. */
+export interface ImageBlock extends BlockBase {
+  type: 'image'
+  src: string
+  /** Meaningful description for assistive technology; use an empty string only for purely decorative art. */
+  alt: string
+  /** `contain` keeps the whole image; `cover` fills its stage and may crop its edges. */
+  fit?: 'contain' | 'cover'
+  caption?: string
+}
+
 /** Renders lesson.summary. */
 export interface SummaryBlock extends BlockBase {
   type: 'summary'
@@ -127,11 +164,14 @@ export interface SummaryBlock extends BlockBase {
 
 export type Block =
   | ConceptBlock
+  | TextBlock
   | EquationBlock
   | SimulationBlock
   | QuestionBlock
+  | QuestionReviewBlock
   | ExplanationBlock
   | DiagramBlock
+  | ImageBlock
   | SummaryBlock
 
 export interface LessonSummary {

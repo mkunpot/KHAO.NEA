@@ -10,7 +10,7 @@ import '@fontsource-variable/fraunces'
 import { useState, type ReactNode } from 'react'
 import { Link } from 'react-router'
 import { HeatEngineDiagram } from '../../components/HeatEngineDiagram'
-import { BlockMath, RichText } from '../../components/Math'
+import { BlockMath, HighlightedRichText, RichText } from '../../components/Math'
 import { optionBadge } from '../results'
 import type {
   Block,
@@ -19,6 +19,7 @@ import type {
   LessonStep,
   Question,
   SimulationBlock,
+  TextBlock,
 } from '../../lesson/types'
 import { finalSnapshot, snapshotAt } from '../../simulations/thermal-contact/model'
 import { ThermalContactSimulation } from '../../simulations/thermal-contact/ThermalContactSimulation'
@@ -155,6 +156,9 @@ function StudyBlock({
     case 'concept':
       return <Concept block={block} />
 
+    case 'text':
+      return <StudyPresetText block={block} />
+
     case 'equation':
       return (
         <figure
@@ -204,6 +208,14 @@ function StudyBlock({
         </figure>
       )
 
+    case 'image':
+      return (
+        <figure className="overflow-hidden rounded-3xl border border-line-strong bg-surface p-3 shadow-[0_18px_40px_-28px_rgba(40,30,10,0.5)]">
+          <img src={block.src} alt={block.alt} className={`max-h-[560px] w-full rounded-2xl ${block.fit === 'cover' ? 'object-cover' : 'object-contain'}`} />
+          {block.caption && <figcaption className="px-3 pb-1 pt-4 text-center font-mono text-xs text-ink-dim"><RichText text={block.caption} /></figcaption>}
+        </figure>
+      )
+
     case 'question': {
       const question = lesson.questions[block.questionId]
       return question ? <StudyQuestion question={question} selected={answers[question.id] ?? null} onAnswer={onAnswer} /> : null
@@ -228,6 +240,21 @@ function StudyBlock({
         </div>
       )
   }
+}
+
+const STUDY_TEXT_PRESETS: Record<TextBlock['role'], string> = {
+  kicker: 'font-mono text-xs font-semibold tracking-[0.14em] uppercase text-hot',
+  title: 'font-display text-5xl font-semibold leading-[1.02]',
+  subtitle: 'font-display text-3xl leading-tight text-ink-dim',
+  section: 'font-display text-4xl font-semibold leading-tight',
+  body: 'text-xl leading-relaxed',
+  callout: 'rounded-2xl border-2 border-accent bg-accent/10 px-6 py-5 text-2xl font-semibold leading-snug',
+  caption: 'font-mono text-xs leading-relaxed text-ink-dim',
+}
+
+function StudyPresetText({ block }: { block: TextBlock }) {
+  const align = block.align === 'center' ? 'text-center' : block.align === 'right' ? 'text-right' : 'text-left'
+  return <p className={`${STUDY_TEXT_PRESETS[block.role]} ${align}`}><HighlightedRichText text={block.text} highlights={block.highlights} /></p>
 }
 
 function Concept({ block }: { block: ConceptBlock }) {

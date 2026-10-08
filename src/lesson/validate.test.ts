@@ -103,4 +103,34 @@ describe('validateLesson', () => {
     lesson.steps[0]!.blocks.push({ id: 'mystery', type: 'video' })
     expect(errorPaths(lesson)).toEqual(['steps[0].blocks[4].type'])
   })
+
+  it('accepts PNG, JPG, WebP and SVG image blocks, and rejects other paths', () => {
+    for (const src of ['/lesson-assets/fridge.png', '/lesson-assets/photo.jpg', 'https://cdn.example.com/diagram.webp?rev=4', '/art/engine.svg#detail']) {
+      const lesson = clone()
+      lesson.steps.at(-1)!.blocks.push({ id: `image-${src}`, type: 'image', src, alt: 'A refrigerator' })
+      expect(isUsableLesson(lesson)).toBe(true)
+    }
+
+    const invalid = clone() as unknown as { steps: Array<{ blocks: Array<Record<string, unknown>> }> }
+    invalid.steps.at(-1)!.blocks.push({ id: 'bad-image', type: 'image', src: '/lesson-assets/notes.pdf', alt: 'Not an image' })
+    expect(errorPaths(invalid)).toEqual(['steps[6].blocks[2].src'])
+  })
+
+  it('accepts preset text roles, highlights and simple entrance animations', () => {
+    const lesson = clone()
+    lesson.steps.at(-1)!.blocks.push({
+      id: 'modern-heading',
+      type: 'text',
+      role: 'title',
+      text: 'Entropy decides the direction',
+      highlights: ['Entropy'],
+      animation: 'rise',
+      align: 'center',
+    })
+    expect(isUsableLesson(lesson)).toBe(true)
+
+    const invalid = structuredClone(lesson) as unknown as { steps: Array<{ blocks: Array<Record<string, unknown>> }> }
+    invalid.steps.at(-1)!.blocks.at(-1)!.role = 'rainbow'
+    expect(errorPaths(invalid)).toEqual(['steps[6].blocks[2].role'])
+  })
 })

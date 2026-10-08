@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { clearDraft, currentLesson, DRAFT_STORAGE_KEY, isEdited, loadDraft, saveDraft } from './draft'
 import { secondLawLesson } from './secondLaw'
+import { fridgeRoomLesson } from './fridgeRoom'
 import type { LessonDefinition } from './types'
 
 const edited = (): LessonDefinition => {
@@ -65,5 +66,19 @@ describe('the lesson draft', () => {
   it('isEdited compares content, not identity', () => {
     expect(isEdited(structuredClone(secondLawLesson))).toBe(false)
     expect(isEdited(edited())).toBe(true)
+  })
+
+  it('adds new built-in blocks to an older draft without losing the teacher’s wording', () => {
+    const oldDraft = structuredClone(fridgeRoomLesson)
+    oldDraft.steps[0]!.title = 'คำถามของฉัน'
+    oldDraft.steps[0]!.blocks = oldDraft.steps[0]!.blocks.filter((block) => block.type !== 'image')
+    window.localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(oldDraft))
+
+    const restored = loadDraft(fridgeRoomLesson)!
+    expect(restored.steps[0]?.title).toBe('คำถามของฉัน')
+    expect(restored.steps[0]?.blocks.find((block) => block.type === 'image')).toMatchObject({
+      id: 'midnight-fridge-photo',
+      src: '/lesson-assets/midnight-breeze-by-the-fridge.png',
+    })
   })
 })

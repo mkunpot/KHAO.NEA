@@ -1,4 +1,4 @@
-import { clampCursor, firstPositionOfStep, positionAt, questionIdOf, simulationBlockOf, stepAt } from '../lesson/cursor'
+import { clampCursor, firstPositionOfStep, positionAt, questionBlockOf, questionIdOf, simulationBlockOf, stepAt } from '../lesson/cursor'
 import type { LessonDefinition, SimulationSpec } from '../lesson/types'
 import type { ClassroomEvent } from '../realtime/events'
 import type { SessionState, SimState } from './sessionTypes'
@@ -44,14 +44,15 @@ function moveTo(state: SessionState, target: number, lesson: LessonDefinition): 
 
   // Entering a different step: question flags belong to the step you left. A step that runs the
   // live simulation starts from a clean, un-connected state.
+  const leavingQuestion = questionBlockOf(stepAt(lesson, state.currentStep))
+  const keepDeferredQuestion =
+    leavingQuestion?.answerTiming === 'deferred' && state.activeQuestionId === leavingQuestion.questionId && !state.questionOpen && !state.answerRevealed
   const next: SessionState = {
     ...state,
     currentStep: cursor,
-    questionOpen: false,
-    questionTimerS: 0,
-    activeQuestionId: null,
-    answerRevealed: false,
-    resultsVisible: false,
+    ...(keepDeferredQuestion
+      ? {}
+      : { questionOpen: false, questionTimerS: 0, activeQuestionId: null, answerRevealed: false, resultsVisible: false }),
   }
   const entered = simulationBlockOf(stepAt(lesson, cursor))
   return entered?.display === 'live' ? { ...next, sim: idle(state.sim) } : next

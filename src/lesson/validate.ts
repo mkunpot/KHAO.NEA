@@ -29,6 +29,11 @@ const EQUATION_TONES = ['default', 'key']
 const DISPLAYS = ['initial', 'settled', 'live']
 const CONTROLS = ['connect', 'reverse', 'reset']
 const READOUTS = ['tHot', 'tCold', 'heat', 'dSHot', 'dSCold', 'dSTotal']
+const IMAGE_FITS = ['contain', 'cover']
+const IMAGE_EXTENSIONS = /\.(?:png|jpe?g|webp|svg)(?:[?#]|$)/i
+const TEXT_ROLES = ['kicker', 'title', 'subtitle', 'section', 'body', 'callout', 'caption']
+const TEXT_ALIGNS = ['left', 'center', 'right']
+const TEXT_ANIMATIONS = ['none', 'fade', 'rise']
 /** Every answer option gets its own colour and shape (▲ ◆ ● ■), so there are at most four. */
 export const MAX_OPTIONS = 4
 
@@ -170,6 +175,15 @@ export function validateLesson(input: unknown): LessonProblem[] {
             text(block, 'text', blockPath, 'The text')
             oneOf(block, 'tone', CONCEPT_TONES, blockPath, 'The style', true)
             break
+          case 'text':
+            text(block, 'text', blockPath, 'The text')
+            oneOf(block, 'role', TEXT_ROLES, blockPath, 'The text role')
+            oneOf(block, 'align', TEXT_ALIGNS, blockPath, 'The text alignment', true)
+            oneOf(block, 'animation', TEXT_ANIMATIONS, blockPath, 'The text animation', true)
+            if (block.highlights !== undefined && (!Array.isArray(block.highlights) || block.highlights.some((term) => typeof term !== 'string' || term.trim() === ''))) {
+              error(at(blockPath, 'highlights'), 'Each highlighted term must be text')
+            }
+            break
           case 'equation':
             text(block, 'latex', blockPath, 'The equation')
             optionalText(block, 'caption', blockPath, 'The caption')
@@ -193,6 +207,11 @@ export function validateLesson(input: unknown): LessonProblem[] {
           case 'question':
             questions++
             if (typeof block.questionId !== 'string' || !questionIds.has(block.questionId)) error(at(blockPath, 'questionId'), 'This slide asks a question that does not exist')
+            oneOf(block, 'answerTiming', ['immediate', 'deferred'], blockPath, 'The answer timing', true)
+            break
+          case 'question-review':
+            questions++
+            if (typeof block.questionId !== 'string' || !questionIds.has(block.questionId)) error(at(blockPath, 'questionId'), 'This slide reviews a question that does not exist')
             break
           case 'explanation':
             optionalText(block, 'title', blockPath, 'The explanation title')
@@ -203,13 +222,22 @@ export function validateLesson(input: unknown): LessonProblem[] {
             if (block.diagramId !== 'heat-engine') error(at(blockPath, 'diagramId'), 'This diagram does not exist')
             optionalText(block, 'caption', blockPath, 'The caption')
             break
+          case 'image':
+            media++
+            if (typeof block.src !== 'string' || !IMAGE_EXTENSIONS.test(block.src.trim())) {
+              error(at(blockPath, 'src'), 'The image must be a PNG, JPG, WebP or SVG path or URL')
+            }
+            text(block, 'alt', blockPath, 'The image description')
+            oneOf(block, 'fit', IMAGE_FITS, blockPath, 'The image fit', true)
+            optionalText(block, 'caption', blockPath, 'The caption')
+            break
           case 'summary':
             break
           default:
             error(at(blockPath, 'type'), 'This kind of content does not exist')
         }
       })
-      if (media > 1) error(path, `Slide ${stepIndex + 1} has more than one simulation or diagram; the projector can show only one`)
+      if (media > 1) error(path, `Slide ${stepIndex + 1} has more than one visual; the projector can show only one`)
       if (questions > 1) error(path, `Slide ${stepIndex + 1} asks more than one question; a slide can ask only one`)
     })
   }

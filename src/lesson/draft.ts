@@ -23,18 +23,49 @@ function storage(): Storage | null {
 
 export const sameLesson = (a: LessonDefinition, b: LessonDefinition): boolean => JSON.stringify(a) === JSON.stringify(b)
 
+/**
+ * Keep a teacher's wording when the built-in lesson grows a new block.
+ *
+ * Drafts deliberately store a whole lesson so a class can receive an exact snapshot. That used
+ * to mean an older browser draft could hide a newly added illustration forever. Blocks have stable
+ * ids, so we can safely take the teacher's version of known blocks and insert only blocks the
+ * draft has never seen, in the built-in lesson's order.
+ */
+function addMissingBaseBlocks(draft: LessonDefinition, base: LessonDefinition): LessonDefinition {
+  const next = structuredClone(draft)
+  next.steps = next.steps.map((step) => {
+    const baseStep = base.steps.find((candidate) => candidate.id === step.id)
+    if (!baseStep) return step
+
+    const existing = new Map(step.blocks.map((block) => [block.id, block]))
+    const fromBase = baseStep.blocks.map((block) => existing.get(block.id) ?? block)
+    const extras = step.blocks.filter((block) => !baseStep.blocks.some((candidate) => candidate.id === block.id))
+    return { ...step, blocks: [...fromBase, ...extras] }
+  })
+  return next
+}
+
 /** True when `lesson` differs from the lesson that ships with the app. */
 export const isEdited = (lesson: LessonDefinition, base: LessonDefinition = secondLawLesson): boolean => !sameLesson(lesson, base)
 
 /** The saved draft, or null when there is none or it is no longer usable (damaged, or for another lesson). */
 export function loadDraft(base: LessonDefinition = secondLawLesson): LessonDefinition | null {
   try {
-    const raw = storage()?.getItem(DRAFT_STORAGE_KEY)
+    const store = storage()
+    const raw = store?.getItem(DRAFT_STORAGE_KEY)
     if (!raw) return null
     const parsed: unknown = JSON.parse(raw)
     if (hasErrors(validateLesson(parsed))) return null
     const lesson = parsed as LessonDefinition
-    return lesson.id === base.id ? lesson : null
+    if (lesson.id !== base.id) return null
+
+    const refreshed = addMissingBaseBlocks(lesson, base)
+    // Persist the upgrade so future editor visits and new sessions agree on the same lesson.
+    if (!sameLesson(refreshed, lesson)) {
+      if (isEdited(refreshed, base)) store?.setItem(DRAFT_STORAGE_KEY, JSON.stringify(refreshed))
+      else store?.removeItem(DRAFT_STORAGE_KEY)
+    }
+    return refreshed
   } catch {
     return null
   }

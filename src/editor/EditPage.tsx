@@ -10,7 +10,7 @@
 import '@fontsource-variable/fraunces'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Link } from 'react-router'
-import { secondLawLesson as base } from '../lesson'
+import { fridgeRoomLesson, secondLawLesson } from '../lesson'
 import type { LessonDefinition } from '../lesson/types'
 import { hasErrors, validateLesson, type LessonProblem } from '../lesson/validate'
 import { LessonInfoForm, StepForm, SummaryForm } from './forms'
@@ -27,7 +27,7 @@ function selectionFromUrl(): Selection {
 
 const differs = (a: unknown, b: unknown) => JSON.stringify(a) !== JSON.stringify(b)
 
-function stepChanged(lesson: LessonDefinition, index: number): boolean {
+function stepChanged(lesson: LessonDefinition, base: LessonDefinition, index: number): boolean {
   const step = lesson.steps[index]
   if (!step) return false
   if (differs(step, base.steps.find((candidate) => candidate.id === step.id))) return true
@@ -35,7 +35,7 @@ function stepChanged(lesson: LessonDefinition, index: number): boolean {
   return asked?.type === 'question' ? differs(lesson.questions[asked.questionId], base.questions[asked.questionId]) : false
 }
 
-const infoChanged = (lesson: LessonDefinition) =>
+const infoChanged = (lesson: LessonDefinition, base: LessonDefinition) =>
   differs([lesson.metadata, lesson.objectives, lesson.simulations], [base.metadata, base.objectives, base.simulations])
 
 /** The slide that shows the summary (so the preview has something to show while the summary is edited). */
@@ -57,7 +57,8 @@ function selectionFor(lesson: LessonDefinition, path: string): Selection {
 }
 
 export default function EditPage() {
-  const { lesson, edited, update, reset, saveNow, pending, savedAt } = useLessonDraft()
+  const base = new URLSearchParams(window.location.search).get('lesson') === fridgeRoomLesson.id ? fridgeRoomLesson : secondLawLesson
+  const { lesson, edited, update, reset, saveNow, pending, savedAt } = useLessonDraft(base)
   const [selection, setSelection] = useState<Selection>(selectionFromUrl)
   const problems = useMemo(() => validateLesson(lesson), [lesson])
   const broken = hasErrors(problems)
@@ -116,8 +117,8 @@ export default function EditPage() {
       <div className="relative z-10 mx-auto max-w-[1600px] px-5 pt-6">
         <header className="editor-header flex flex-wrap items-end justify-between gap-5">
           <div>
-            <Link to="/" className="font-mono text-xs uppercase tracking-[0.14em] text-ink-dim hover:text-ink">
-              ← Back to start
+            <Link to="/lessons" className="inline-flex items-center rounded-lg border border-line-strong px-3 py-1.5 text-xs font-semibold text-ink-dim transition hover:bg-surface-2 hover:text-ink">
+              ← Lessons
             </Link>
             <p className="mono-label mt-6 text-accent">Lesson editor</p>
             <h1 className="mt-1 font-display text-4xl font-semibold leading-tight">Edit the lesson</h1>
@@ -157,7 +158,7 @@ export default function EditPage() {
         <div className="editor-workspace mt-8 grid gap-6 xl:grid-cols-[260px_minmax(0,1fr)_minmax(0,1.2fr)]">
           <nav aria-label="Parts of the lesson" className="editor-nav xl:sticky xl:top-5 xl:self-start">
             <ul className="flex flex-wrap gap-2 xl:flex-col xl:gap-1.5">
-              <NavItem active={selection.kind === 'info'} changed={infoChanged(lesson)} onClick={() => setSelection({ kind: 'info' })}>
+              <NavItem active={selection.kind === 'info'} changed={infoChanged(lesson, base)} onClick={() => setSelection({ kind: 'info' })}>
                 Lesson info
               </NavItem>
               <li className="mono-label hidden px-3 pb-1 pt-4 xl:block">Slides</li>
@@ -166,7 +167,7 @@ export default function EditPage() {
                   key={step.id}
                   number={index + 1}
                   active={selection.kind === 'step' && selection.index === index}
-                  changed={stepChanged(lesson, index)}
+                  changed={stepChanged(lesson, base, index)}
                   flagged={flaggedSteps.has(index)}
                   onClick={() => setSelection({ kind: 'step', index })}
                 >

@@ -7,7 +7,7 @@
  */
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { SessionGate } from '../components/SessionGate'
-import { secondLawLesson as lesson } from '../lesson'
+import { fridgeRoomLesson, secondLawLesson } from '../lesson'
 import { cursorPositions, positionAt, questionIdOf } from '../lesson/cursor'
 import { currentLesson } from '../lesson/draft'
 import type { LessonDefinition } from '../lesson/types'
@@ -36,6 +36,10 @@ interface Shared {
   lesson: LessonDefinition
 }
 
+function selectedLesson(): LessonDefinition {
+  return new URLSearchParams(window.location.search).get('lesson') === fridgeRoomLesson.id ? fridgeRoomLesson : secondLawLesson
+}
+
 export default function Harness() {
   const params = new URLSearchParams(window.location.search)
   const view = params.get('view') ?? 'try'
@@ -54,6 +58,7 @@ const screenOf = (view: string): { role: Role; child: ReactNode } =>
 // ── one screen, its own seeded classroom ────────────────────────────────────
 
 function useSeeded() {
+  const lesson = selectedLesson()
   const adapter = useMemo(() => new MemoryRealtimeAdapter(), [])
   const [code, setCode] = useState<string | null>(null)
   useEffect(() => {
@@ -105,6 +110,7 @@ function useSeeded() {
 
 function Seeded({ view }: { view: string }) {
   const { adapter, code } = useSeeded()
+  const lesson = selectedLesson()
   if (!code) return <div className="p-6 text-ink-dim">seeding…</div>
   const { role, child } = screenOf(view)
   return (
@@ -138,7 +144,7 @@ function SharedView({ view }: { view: string }) {
   if (!shared) return <div className="p-6 text-ink-dim">Open /__harness?view=try</div>
   const { role, child } = screenOf(view)
   return (
-    <SessionProvider code={shared.code} role={role} lesson={lesson} adapter={shared.adapter}>
+    <SessionProvider code={shared.code} role={role} lesson={shared.lesson} adapter={shared.adapter}>
       <SessionGate>{child}</SessionGate>
     </SessionProvider>
   )
@@ -198,6 +204,7 @@ function useClassmates(shared: Shared | null) {
 }
 
 function Try() {
+  const lesson = selectedLesson()
   const adapter = useMemo(() => new MemoryRealtimeAdapter(), [])
   const [shared, setShared] = useState<Shared | null>(null)
   const [big, setBig] = useState<'teacher' | 'projector' | null>(null)
@@ -209,7 +216,7 @@ function Try() {
   const { count, add } = useClassmates(shared)
   // The edited lesson (if any) goes into the session exactly as it does for a real class, so the three
   // screens below read it from the session — like phones — and never from this browser's draft.
-  const [mine] = useState(currentLesson)
+  const [mine] = useState(() => currentLesson(lesson))
 
   useEffect(() => {
     let cancelled = false
@@ -235,15 +242,21 @@ function Try() {
   }, [shared])
 
   if (!shared) return <div className="p-6 text-ink-dim">starting the practice room…</div>
-  const src = (view: string) => `/__harness?view=${view}&shared=1`
-  const editHref = `/edit?step=${currentStep + 1}`
+  const lessonQuery = lesson.id === fridgeRoomLesson.id ? '&lesson=fridge-room' : ''
+  const src = (view: string) => `/__harness?view=${view}&shared=1${lessonQuery}`
+  const editHref = `/edit?step=${currentStep + 1}${lessonQuery ? lessonQuery.replace('&', '&') : ''}`
 
   return (
     <div className="practice-room grid h-dvh grid-rows-[auto_minmax(0,1fr)] gap-3 p-3 text-ink">
       <header className="practice-header flex flex-wrap items-center justify-between gap-x-6 gap-y-2 px-3 py-2">
-        <h1 className="flex items-baseline gap-2 font-display text-xl font-semibold leading-none sm:text-2xl">
-          โหมดซ้อม <span className="font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-ink-dim">Practice mode</span>
-        </h1>
+        <div className="flex items-center gap-4">
+          <a href="/lessons" className="rounded-lg border border-line-strong px-3 py-1.5 text-xs font-semibold text-ink-dim transition hover:bg-surface-2 hover:text-ink">
+            ← Lessons
+          </a>
+          <h1 className="flex items-baseline gap-2 font-display text-xl font-semibold leading-none sm:text-2xl">
+            โหมดซ้อม <span className="font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-ink-dim">Practice mode</span>
+          </h1>
+        </div>
         <div className="flex items-center gap-2 text-sm">
           <button
             type="button"

@@ -13,8 +13,8 @@ const SAVE_DELAY_MS = 300
  * copy, and saves the draft shortly after the last keystroke — and on the way out, so nothing typed is lost.
  * `pending` is true between an edit and its save; `savedAt` is when the draft was last written.
  */
-export function useLessonDraft() {
-  const [lesson, setLesson] = useState<LessonDefinition>(() => currentLesson().lesson)
+export function useLessonDraft(base: LessonDefinition = secondLawLesson) {
+  const [lesson, setLesson] = useState<LessonDefinition>(() => currentLesson(base).lesson)
   const [pending, setPending] = useState(false)
   const [savedAt, setSavedAt] = useState<Date | null>(null)
   const latest = useRef(lesson)
@@ -24,10 +24,10 @@ export function useLessonDraft() {
   const saveNow = useCallback(() => {
     window.clearTimeout(timer.current)
     timer.current = undefined
-    saveDraft(latest.current)
+    saveDraft(latest.current, base)
     setPending(false)
     setSavedAt(new Date())
-  }, [])
+  }, [base])
 
   const update = useCallback(
     (edit: LessonEdit) => {
@@ -47,11 +47,11 @@ export function useLessonDraft() {
     window.clearTimeout(timer.current)
     timer.current = undefined
     clearDraft()
-    latest.current = secondLawLesson
-    setLesson(secondLawLesson)
+    latest.current = base
+    setLesson(base)
     setPending(false)
     setSavedAt(null)
-  }, [])
+  }, [base])
 
   // Leaving the page: write whatever is still waiting for the timer.
   useEffect(() => {
@@ -59,15 +59,15 @@ export function useLessonDraft() {
       if (timer.current === undefined) return
       window.clearTimeout(timer.current)
       timer.current = undefined
-      saveDraft(latest.current)
+      saveDraft(latest.current, base)
     }
     window.addEventListener('pagehide', flush)
     return () => {
       window.removeEventListener('pagehide', flush)
       flush()
     }
-  }, [])
+  }, [base])
 
-  const edited = useMemo(() => isEdited(lesson), [lesson])
+  const edited = useMemo(() => isEdited(lesson, base), [lesson, base])
   return { lesson, edited, update, reset, saveNow, pending, savedAt }
 }

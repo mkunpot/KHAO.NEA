@@ -4,7 +4,7 @@
  * Progressive reveal inside a step therefore needs no extra state.
  */
 
-import type { Block, LessonDefinition, LessonStep, QuestionBlock, SimulationBlock } from './types'
+import type { Block, LessonDefinition, LessonStep, QuestionBlock, QuestionReviewBlock, SimulationBlock } from './types'
 import type { ReadoutKey } from '../simulations/thermal-contact/types'
 
 export interface CursorPosition {
@@ -77,6 +77,10 @@ export function questionBlockOf(step: LessonStep): QuestionBlock | undefined {
 
 export function questionIdOf(step: LessonStep): string | undefined {
   return questionBlockOf(step)?.questionId
+}
+
+export function questionReviewBlockOf(step: LessonStep): QuestionReviewBlock | undefined {
+  return step.blocks.find((b): b is QuestionReviewBlock => b.type === 'question-review')
 }
 
 export function simulationBlockOf(step: LessonStep): SimulationBlock | undefined {

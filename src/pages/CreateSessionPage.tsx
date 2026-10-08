@@ -4,7 +4,7 @@ import { Link } from 'react-router'
 import { CopyField } from '../components/CopyField'
 import { QRCodeBlock } from '../components/QRCodeBlock'
 import { SetupNotice } from '../components/SetupNotice'
-import { secondLawLesson } from '../lesson'
+import { fridgeRoomLesson, secondLawLesson } from '../lesson'
 import { currentLesson } from '../lesson/draft'
 import { validateLesson } from '../lesson/validate'
 import { getRealtimeAdapter, type RealtimeAdapter } from '../realtime'
@@ -20,11 +20,13 @@ export default function CreateSessionPage({ adapter: injected }: { adapter?: Rea
   const [error, setError] = useState<string | null>(null)
   const [session, setSession] = useState<SessionRecord | null>(null)
   const [showQr, setShowQr] = useState(false)
-  // The teacher's edited copy of the lesson (from /edit), if there is one, and whether to teach it.
-  const [mine] = useState(currentLesson)
+  const isFridgeLesson = new URLSearchParams(window.location.search).get('lesson') === fridgeRoomLesson.id
+  // The teacher's edited copy of the selected lesson (from /edit), if there is one, and whether to teach it.
+  const [mine] = useState(() => currentLesson(isFridgeLesson ? fridgeRoomLesson : secondLawLesson))
   const [useEdited, setUseEdited] = useState(true)
   const edited = mine.edited && useEdited
-  const lesson = edited ? mine.lesson : secondLawLesson
+  const baseLesson = isFridgeLesson ? fridgeRoomLesson : secondLawLesson
+  const lesson = edited ? mine.lesson : baseLesson
   const emptyFields = useMemo(() => validateLesson(lesson).filter((problem) => problem.severity === 'warning').length, [lesson])
 
   if (!adapter) return <SetupNotice />

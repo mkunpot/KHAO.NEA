@@ -11,6 +11,7 @@
 import {
   positionAt,
   questionBlockOf,
+  questionReviewBlockOf,
   simulationBlockOf,
   stepAt,
   stepRevealStages,
@@ -115,7 +116,9 @@ export function planNext(state: SessionState, lesson: LessonDefinition, settings
   const lastReveal = stepRevealStages(step)
   const simulation = simulationBlockOf(step)
   const questionBlock = questionBlockOf(step)
+  const reviewBlock = questionReviewBlockOf(step)
   const question = questionBlock ? lesson.questions[questionBlock.questionId] : undefined
+  const reviewQuestion = reviewBlock ? lesson.questions[reviewBlock.questionId] : undefined
 
   // 1. A live simulation that has not been run in this step yet.
   if (simulation?.display === 'live' && state.sim.mode === 'idle') {
@@ -145,6 +148,16 @@ export function planNext(state: SessionState, lesson: LessonDefinition, settings
       }
     }
     if (active && !state.answerRevealed) {
+      if (questionBlock.answerTiming === 'deferred') {
+        if (state.questionOpen) {
+          return {
+            kind: 'finish-question',
+            label: 'Close voting',
+            hint: 'Keep answers hidden and continue the lesson. They will be reviewed at the end.',
+            events: () => [{ type: 'CLOSE_QUESTION', questionId: question.id }],
+          }
+        }
+      } else {
       const automatic = state.questionOpen && (settings.finishWhenAllAnswered || settings.timerS > 0)
       return {
         kind: 'finish-question',
@@ -156,6 +169,18 @@ export function planNext(state: SessionState, lesson: LessonDefinition, settings
             : 'Show the results and the correct answer.',
         events: () => [{ type: 'FINISH_QUESTION', questionId: question.id }],
       }
+      }
+    }
+  }
+
+  // A deferred question is deliberately answered on an earlier slide. Its review
+  // slide is where the class finally sees the aggregate and the explanation.
+  if (reviewQuestion && state.activeQuestionId === reviewQuestion.id && !state.answerRevealed) {
+    return {
+      kind: 'finish-question',
+      label: 'Reveal answer',
+      hint: 'Show the class result, correct answer and explanation.',
+      events: () => [{ type: 'FINISH_QUESTION', questionId: reviewQuestion.id }],
     }
   }
 

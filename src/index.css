@@ -222,6 +222,9 @@ body {
     pointer-events: none;
   }
 
+  .reveal[data-shown="true"] .text-motion-fade { animation: text-fade .42s ease both; }
+  .reveal[data-shown="true"] .text-motion-rise { animation: rise .55s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
@@ -253,6 +256,8 @@ body {
     .practice-room { overflow-x: hidden; }
   }
 }
+
+@keyframes text-fade { from { opacity: 0; } to { opacity: 1; } }
 
 /*
  * KaTeX ships an UNLAYERED stylesheet, which beats every Tailwind utility (those live in cascade
